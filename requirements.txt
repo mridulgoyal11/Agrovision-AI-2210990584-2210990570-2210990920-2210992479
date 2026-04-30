@@ -1,0 +1,10 @@
+flask
+flask-cors
+fastai
+fastcore
+torch
+torchvision
+pillow
+ipython
+plum-dispatch
+fasttransform

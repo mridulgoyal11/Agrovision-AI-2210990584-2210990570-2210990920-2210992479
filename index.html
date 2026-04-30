@@ -1,0 +1,287 @@
+<!----This is the html file which serves as the frontend for the insect detection application.
+ It includes a header, main content area with instructions and an image upload section, and a footer.
+  The JavaScript code handles the image upload, sends it to the backend for analysis,
+   and displays the results along with prevention methods based on the identified insect.-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" href="./insect.png" type="image/x-icon">
+    <title>Insect Detector</title>
+</head>
+<!--This is the body of the HTML document-->
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Insect Detector</h1>
+            <nav>
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+    <div class="main">
+       <div class="left">
+            <div class="heading">
+                <h1 class="secret">AI-Powered Insect </h1>
+            <h2 class="secret">Detection for Healthier Crops!</h2>
+            </div>
+            <p class="secret">Upload an image of the insect affecting your crops, and our advanced system will analyze it to provide accurate identification along with effective prevention and treatment solutions. Empower your farming with smart technology for healthier yields!</p>
+    </div>
+    <div class="right"></div>
+</div>
+    <div class="container">
+        <label class="upload-label" for="photo">
+            📸 Upload Insect Photo
+        </label>
+        <input id='photo' type='File'>
+        <div id='results'></div>
+        <div id='method'></div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2024 Insect Detector. All rights reserved.</p>
+            <p>Empowering farmers with AI technology for healthier crops.</p>
+        </div>
+    </footer>
+<script>
+    async function loaded(reader) {
+        const results = document.getElementById('results');
+        const method = document.getElementById('method');
+        
+        results.innerHTML = "<p>Analyzing image...</p>";
+        method.innerHTML = "";
+
+        try {
+            // Try local backend first, fallback to remote if needed (though remote is currently down)
+            // Use relative path for Render/Production. Fallback to localhost for development.
+            const LOCAL_API = "/predict";
+            const DEV_API = "http://localhost:5000/predict";
+            const REMOTE_API = "https://rimi98-insectrecognizer.hf.space/run/predict";
+            
+            let response;
+            try {
+                // Try the primary local/relative endpoint
+                response = await fetch(LOCAL_API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ data: [reader.result] })
+                });
+  // If relative path fails (e.g. on different port), try explicit localhost
+                if (!response.ok && window.location.port !== "5000") {
+                   throw new Error("Relative path failed, trying dev backup");
+                }
+            } catch (e) {
+                try {
+                    console.log("Relative API failed, trying explicit localhost...");
+                    response = await fetch(DEV_API, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ data: [reader.result] })
+                    });
+                } catch (e2) {
+                    console.log("All local/dev attempts failed, trying remote...", e2);
+                    response = await fetch(REMOTE_API, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ data: [reader.result] })
+                    });
+                }
+            }
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => "No error details");
+                throw new Error(`API error: ${response.status} (${response.statusText}). Details: ${errorText}`);
+            }
+            const json = await response.json();
+            if (!json.data || !json.data[0]) {
+                throw new Error("Invalid response format from API");
+            }
+            let label = json['data'][0]['label'];
+            results.innerHTML = `<br/> <img src = "${reader.result}" style = "height: 400px;"><br> <p style = "color: red; font-weight: bold; font-size: 1.2em;">Result: ${label}</p>`;
+
+            if(label === 'GRASSHOPER'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/><p>Predators of grasshoppers include many insect-eating birds, such as swallows. Praying mantis insects, tiny snakes, and toads are examples of other animal species that consume grasshoppers. It is possible to lessen or get rid of grasshopper infestations by using gardening techniques that promote these natural predators.</p>
+                <br/>
+                <p>
+                    Large numbers of grasshoppers can be consumed by birds, and birds wandering your garden can almost completely control grasshoppers and other insects. This purpose is also served by other domestic birds, such as ducks and geese.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.thespruce.com/control-grasshopper-garden-damage-2656303' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label === 'MEXICAN BEAN BEETLE'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/><p> When larvae are first noticed, buy and release the helpful wasp Pediobius faveolatus. Most useful in public gardens or huge plants.
+                Use pesticides like spinosad, neem, or pyrethrum for serious infestations. Plants that are severely infested should be sealed in plastic bags. The plants and dead bugs can be composted after one week.        
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.almanac.com/pest/mexican-bean-beetles' target='_blank' rel='noreferrer'>Link to Reference (Almanac)</a>
+                </li>
+                </ul>`
+            }
+            else if(label === 'APHIDS'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Neem oil contains chemical compounds that repel aphids as well as other insects like mealybugs, cabbage worms, beetles, leafminers, ants, and several kinds of caterpillars. Use caution when beneficial insects are present. Use a ready-to-use neem oil spray or follow directions to dilute it in water.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.gardendesign.com/how-to/aphids.html' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label === 'FRUIT FLY'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Fruit fly traps that you may get from your neighborhood store, such as sticky traps for hanging.
+                    A little mason jar with 3 oz of unfiltered apple cider vinegar, wrapped in plastic with a tiny hole, can also be effective.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.goodhousekeeping.com/home/cleaning/tips/a25042/how-to-kill-fruit-flies/' target='_blank' rel='noreferrer'>How to Kill Fruit Flies</a>
+                </li>
+                <li><a href='https://modernfarmer.com/2021/08/how-to-get-rid-of-fruit-flies/' target='_blank' rel='noreferrer'>How to Get Rid of Fruit Flies</a></li>
+                </ul>`
+            }
+            else if(label === 'CATERPILLAR'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    All you need is a spray bottle, water, and an organic liquid soap. Shake the mixture to dissolve a little bit of soap into the water, and then spritz any impacted plants. Make sure to cover the underside of leaves.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li>
+                <a href='https://www.gardeningknowhow.com/plant-problems/pests/insects/prevent-caterpillars.htm' target='_blank' rel='noreferrer'>Prevent Caterpillars</a>
+                </li>
+                <li> 
+                <a href='https://www.bobvila.com/articles/how-to-get-rid-of-caterpillars/' target='_blank' rel='noreferrer'>How to Get Rid of Caterpillars</a>
+                </li>
+                </ul>`
+            }
+            else if(label =='COLORADO POTATO BEETLE'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Neem oil should be used in the evening to avoid harming helpful insects. It needs to be applied repeatedly and works best against early larvae. Floating row covers can also help prevent infestations.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.planetnatural.com/pest-problem-solver/garden-pests/colorado-potato-beetle-control/' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label === 'LEAF FOOTED BUGS'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Pyrethrin is advised for controlling these insects. Botanicals or insecticidal soap may offer some control over immature nymphs.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://gardening.org/ways-to-control-leaf-footed-bugs/' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label === 'THRIPS'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Blue sticky traps are useful for monitoring populations. Release predatory insects like ladybugs and lacewings to eliminate this pest.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.planetnatural.com/pest-problem-solver/houseplant-pests/thrips-control/' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label ==='LEAF MINERS'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Plant trap crops like columbine to draw leaf miners away. Neem oil can also impact their life cycle and reduce the number of mature larvae.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.almanac.com/pest/leaf-miners' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label === 'WHITE FLIES'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Use an irrigation hose or spray bottle to scatter them and dislodge eggs. Spray foliage with insecticidal soap, including the undersides.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.housedigest.com/651285/best-ways-to-get-rid-of-whiteflies/' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label==='MEALY BUG'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Use an irrigation hose or spray bottle to scatter them. Spray foliage with insecticidal soap repeatedly if necessary.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.thespruce.com/how-to-control-mealybugs-1902890' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+            else if(label ==='SPIDER MITES'){
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    Spider mites are successfully eradicated with insecticidal soaps. A solution of rubbing alcohol and water can also be effective.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.almanac.com/pest/spider-mites' target='_blank' rel='noreferrer'>Spider Mites</a>
+                </li>
+                <li>
+                <a href='https://www.thespruce.com/controlling-spider-mites-3269371' target='_blank' rel='noreferrer'>Controlling Spider Mites</a>
+                </li>
+                </ul>`
+            }
+            else{
+                method.innerHTML = `<h4>Prevent Process: </h4><br/>
+                <p>
+                    A basic "trap" for stink bugs consisting of hot water, dish soap, and white vinegar is recommended. Directly spraying them with this solution is also effective.
+                </p><br>
+                <i><h4>Reference</h4></i>
+                <ul>
+                <li> 
+                <a href='https://www.thespruce.com/control-grasshopper-garden-damage-2656303' target='_blank' rel='noreferrer'>Link to Reference</a>
+                </li>
+                </ul>`
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            results.innerHTML = `<p style="color: red;">Error: ${error.message}. Make sure the local backend is running (python local_app.py).</p>`;
+        }
+    }
+
+    function read() {
+        const photo = document.getElementById('photo');
+        if (photo.files && photo.files[0]) {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => loaded(reader));
+            reader.readAsDataURL(photo.files[0]);
+        }
+    }
+    document.getElementById('photo').addEventListener('input', read);
+</script>
+</body>
+</html>

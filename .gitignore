@@ -1,0 +1,15 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pip_tmp/
+pip_tmp/
+
+# Models (Optional, but large models are usually not pushed to git)
+# deployments/models/
+
+# OS
+.DS_Store
+Thumbs.db
